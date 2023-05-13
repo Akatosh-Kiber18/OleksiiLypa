@@ -4,7 +4,11 @@ const TelegramBot = require('node-telegram-bot-api');
 const bot = new TelegramBot(process.env.TOKEN, { polling: true });
 bot.setMyCommands([
     {command: '/help', description: 'Show command list'},
-    {command: '/tasklist', description: 'Showing task list'}
+    {command: '/tasklist', description: 'Showing task list'},
+    {command: '/addtask', description: 'Add task by name'},
+    {command: '/removetask', description: 'Remove task by name'},
+    {command: '/addresult', description: 'Add result by task name'},
+    {command: '/leaderboard', description: 'Showing leader board by task name'}
 ])
 let listOfTasks = {};
 const helpList = [
@@ -33,7 +37,7 @@ const helpList = [
 bot.on('message', async (msg) => {    
     chatInfo = {
         chatId: msg.chat.id,
-        senderName: msg.from.first_name,
+        senderName: msg.from.first_name + " " + msg.from.last_name,
         words: msg.text.split(' ')      
     }
 
@@ -92,7 +96,7 @@ async function addTask(chatInfo) {
 
     listOfTasks[taskName] = {};
     
-    await bot.sendMessage(chatId, `Ok ${senderName} I add ${taskName} to list`)
+    await bot.sendMessage(chatId, `Ok ${senderName} I add ${taskName} to list.`)
 }
 
 async function removeTask(chatInfo) {
@@ -105,6 +109,16 @@ async function removeTask(chatInfo) {
 
 async function addResult(chatInfo) {
     const { chatId, senderName, words } = chatInfo;
+    const taskName = await getTaskName(words);
+    const userName = senderName;
+    const result = words[words.length-1]; 
+
+    if (listOfTasks.hasOwnProperty(taskName)) {
+        listOfTasks[taskName] = {[userName]: result};
+        await bot.sendMessage(chatId, `Ok ${userName}, I add this low score to list.`);
+    } else {
+        await bot.sendMessage(chatId, `I dont see ${taskName} in the list, try to add it.`);
+    }
 }
 
 async function leaderboard(chatInfo) {
@@ -135,7 +149,11 @@ async function getTaskName (words) {
     let taskName = ''
     if(words.length > 1) {
         for (let i = 1; i < words.length; i++) {
-            taskName += " " + words[i];
+            if(words[i].match(/[0-9]/)) {
+                i++
+            }else{
+                taskName += " " + words[i];
+            }
         }
     } else if (words.length === 1){
             taskName = words[0];
