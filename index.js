@@ -1,7 +1,10 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
+const {addTask, getListOfTask} = require('./tasks/tasks.js');
+const {getTaskName} = require('./tasks/helpers.js');
 
 const bot = new TelegramBot(process.env.TOKEN, { polling: true });
+
 bot.setMyCommands([
     {command: '/help', description: 'Show command list'},
     {command: '/tasklist', description: 'Showing task list'},
@@ -54,7 +57,7 @@ async function commandList (chatInfo) {
         break;
         
         case '/addtask':
-           await addTask(chatInfo);
+            bot.sendMessage(chatId, await addTask(chatInfo));
         break;
 
         case '/removetask':
@@ -71,7 +74,7 @@ async function commandList (chatInfo) {
 
         case '/tasklist':
            const list = await getListOfTask();
-           await bot.sendMessage(chatId, list);
+        //    await bot.sendMessage(chatId, list);
         break;
 
         default : {
@@ -88,15 +91,6 @@ async function help (chatInfo) {
        result += `${item.name} - ${item.value}\n\n`; 
     }
     await bot.sendMessage(chatId, result);
-}
-
-async function addTask(chatInfo) {
-    const { chatId, senderName, words } = chatInfo;
-    let taskName = await getTaskName(words);
-
-    listOfTasks[taskName] = {};
-    
-    await bot.sendMessage(chatId, `Ok ${senderName} I add ${taskName} to list.`)
 }
 
 async function removeTask(chatInfo) {
@@ -124,42 +118,3 @@ async function addResult(chatInfo) {
 async function leaderboard(chatInfo) {
     const { chatId, senderName, words } = chatInfo;
 }
-
-async function getListOfTask() {
-    if (Object.keys(listOfTasks).length === 0) {
-      return 'Hey, list of tasks is empty!!';
-    }
-    let taskList = '';
-    Object.keys(listOfTasks).forEach((task) => {
-      const taskObj = listOfTasks[task];
-      let userList = '';
-      if (Object.keys(taskObj).length === 0) {
-        userList = 'No users found';
-      } else {
-        Object.keys(taskObj).forEach((user) => {
-          userList += `${user}: ${taskObj[user]}\n`;
-        });
-      }
-      taskList += `${task}: \n${userList}\n`;
-    });
-    return taskList;
-  }
-
-async function getTaskName (words) {
-    let taskName = ''
-    if(words.length > 1) {
-        for (let i = 1; i < words.length; i++) {
-            if(words[i].match(/[0-9]/)) {
-                i++
-            }else{
-                taskName += " " + words[i];
-            }
-        }
-    } else if (words.length === 1){
-            taskName = words[0];
-    } else {
-        return;
-    }
-
-    return taskName.trim();
-}   
