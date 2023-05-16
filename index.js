@@ -1,6 +1,6 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
-const {addTask, getListOfTask} = require('./tasks/tasks.js');
+const {addTask, getListOfTask, addResult} = require('./tasks/tasks.js');
 const {getTaskName} = require('./tasks/helpers.js');
 
 const bot = new TelegramBot(process.env.TOKEN, { polling: true });
@@ -99,20 +99,6 @@ async function removeTask(chatInfo) {
 
     delete listOfTasks[taskName];
     await bot.sendMessage(chatId, `Ok ${senderName} I remove ${taskName} from list`)
-}
-
-async function addResult(chatInfo) {
-    const { chatId, senderName, words } = chatInfo;
-    const taskName = await getTaskName(words);
-    const userName = senderName;
-    const result = words[words.length-1]; 
-
-    if (listOfTasks.hasOwnProperty(taskName)) {
-        listOfTasks[taskName] = {[userName]: result};
-        await bot.sendMessage(chatId, `Ok ${userName}, I add this low score to list.`);
-    } else {
-        await bot.sendMessage(chatId, `I dont see ${taskName} in the list, try to add it.`);
-    }
 }
 
 async function leaderboard(chatInfo) {

@@ -10,8 +10,9 @@ async function addTask(chatInfo) {
   }
 
   try {
-    const query = `INSERT INTO TASKS (NAME, USER) VALUES ('${taskName}', '${senderName}')`;
+    const query = `INSERT INTO TASKS (NAME) VALUES ('${taskName}')`;
     await connection.query(query);
+
     console.log('Task inserted successfully!');
   } 
   catch (error) {
@@ -20,7 +21,39 @@ async function addTask(chatInfo) {
   return `Ok ${senderName} I add ${taskName} to list.`
 }
 
-//Make it work with one task and alot of users from the same table
+async function addResult() {
+const { chatId, senderName, words } = chatInfo;
+const taskName = await getTaskName(words);
+const userName = senderName;
+const score = words[words.length-1]; 
+
+const taskID = await connection.query(`SELECT ID FROM TASKS WHERE Name=${taskName};`)
+
+if(taskID !== null) {
+  const user = await connection.query(`SELECT * FROM USERS WHERE Name=${senderName};`);
+  if(user===null) {
+    await connection.query(`INSERT INTO USERS (Name) VALUES ('${senderName}')`);
+  }
+  await connection.query(`INSERT INTO RESULTS (TaskID, UserID, Score) VALUES ('${taskID}, ')`);
+}
+
+console.log(`Task info: ${taskID} \nUser info: ${user}`);
+// INSERT INTO USERS ( Name)
+// VALUES ('<user_name>');
+
+// INSERT INTO RESULTS (TaskID, UserID, Score)
+// VALUES (<task_id>, <user_id>, <score>);
+}
+
+async function addResult(chatInfo) {
+  if (listOfTasks.hasOwnProperty(taskName)) {
+      listOfTasks[taskName] = {[userName]: result};
+      await bot.sendMessage(chatId, `Ok ${userName}, I add this low score to list.`);
+  } else {
+      await bot.sendMessage(chatId, `I dont see ${taskName} in the list, try to add it.`);
+  }
+}
+
 async function getListOfTask() {
   const query = `SELECT * FROM TASKS`;
   await connection.query(query, async (error, results) => {
@@ -50,5 +83,6 @@ async function parseListOfTasks(list) {
 
 module.exports = {
   addTask,
-  getListOfTask
+  addResult,
+  getListOfTask,
 }
