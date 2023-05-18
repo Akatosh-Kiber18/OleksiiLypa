@@ -38,38 +38,38 @@ const helpList = [
 ];
 
 bot.on('message', async (msg) => {    
-    chatInfo = {
+    chatData = {
         chatId: msg.chat.id,
         senderName: msg.from.first_name + " " + msg.from.last_name,
         words: msg.text.split(' ')      
     }
 
-    commandList(chatInfo)
+    commandList(chatData)
 });
 
 
-async function commandList (chatInfo) {
-    const { chatId, senderName, words } = chatInfo;
+async function commandList (chatData) {
+    const { chatId, senderName, words } = chatData;
 
     switch (words[0]) {
         case '/help':
-           await help(chatInfo);
+           await help(chatData);
         break;
         
         case '/addtask':
-            bot.sendMessage(chatId, await addTask(chatInfo));
+            bot.sendMessage(chatId, await addTask(chatData));
         break;
 
         case '/removetask':
-           await removeTask(chatInfo);     
+           await removeTask(chatData);     
         break;
 
         case '/addresult':
-           await addResult(chatInfo);     
+            bot.sendMessage(chatId, await addResult(chatData));     
         break;
 
         case '/leaderboard':
-           await leaderboard(chatInfo);     
+            bot.sendMessage(chatId, await leaderboard(chatData));     
         break;
 
         case '/tasklist':
@@ -84,8 +84,8 @@ async function commandList (chatInfo) {
    }
 }
 
-async function help (chatInfo) {
-    const { chatId } = chatInfo;
+async function help (chatData) {
+    const { chatId } = chatData;
     let result = '';
     for(const item of helpList) {
        result += `${item.name} - ${item.value}\n\n`; 
@@ -93,14 +93,7 @@ async function help (chatInfo) {
     await bot.sendMessage(chatId, result);
 }
 
-async function removeTask(chatInfo) {
-    const { chatId, senderName, words } = chatInfo;
-    taskName = await getTaskName(words);
-
-    delete listOfTasks[taskName];
-    await bot.sendMessage(chatId, `Ok ${senderName} I remove ${taskName} from list`)
-}
-
-async function leaderboard(chatInfo) {
-    const { chatId, senderName, words } = chatInfo;
+async function leaderboard(chatData) {
+    const { chatId, senderName, words } = chatData;
+    return 'not implemented yet'
 }

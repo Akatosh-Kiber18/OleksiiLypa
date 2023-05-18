@@ -3,7 +3,7 @@ const {getTaskName} = require('./tasks/helpers');
 
 const testInfo = {
     senderName: "Oleksii Golovniak",
-    words: ["/addtask", "TestName", "15"]
+    words: ["/addresult", "TestName", "20"]
 }
 
 async function addResult(chatInfo) {
@@ -13,16 +13,21 @@ async function addResult(chatInfo) {
 
     const taskId = await getTaskIdByName(taskName);
     let user = await getUserByName(senderName);
-    // console.log(user);
 
     if(taskId !== undefined) {
         if(user === undefined) {
             await addNewUser(senderName);
+            
             user = await getUserByName(senderName);
-        }
+
             await addNewResult(taskId.id, user.ID, score);
+            return `${senderName} added score for ${taskName} task!`
+        } else {
+            await updateResult(taskId.id, user.ID, score);
+            return `${senderName} changed score for ${taskName} task!`
+        }
     } else {
-        return 'uuups something went wrong =D' 
+        return `I cant add result for ${taskName} as it is not in the list.` 
     }
 }
 
@@ -74,6 +79,55 @@ async function addResult(chatInfo) {
         });
     }
 
+    function updateResult(taskId, userId, score) {
+      return new Promise((resolve, reject) => {
+        connection.query(`UPDATE RESULTS SET Score=${score} WHERE TaskID='${taskId}' AND UserID='${userId}'`, (error, results) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(results[0]);
+          }
+        });
+      });
+  }
 
+  async function getListOfTaskFromDB() {
+    return new Promise((resolve, reject) => {  
+      const query = `
+        SELECT TASKS.Name AS TASK_NAME, USERS.Name AS USER_NAME, RESULTS.Score AS RESULT_SCORE
+        FROM RESULTS
+        JOIN TASKS ON RESULTS.TaskID = TASKS.id
+        JOIN USERS ON RESULTS.UserID = USERS.id;
+      `;
+      connection.query(query, (error, results) => {
+        if(error) {
+          reject(error);
+        } else {
+          resolve(results);
+        }
+      });
+    })
+  }
 
-    addResult(testInfo);
+  async function parseListOfTask(res) {
+    const data = res.map(row => ({
+      NAME: row.TASK_NAME,
+      USER: row.USER_NAME,
+      RESULT: row.RESULT_SCORE
+    }));
+
+    return data;
+  }
+  
+  async function getData() {
+    try {
+      const result = await getListOfTaskFromDB();
+      const parsedData = await parseListOfTask(result);
+      console.log(parsedData);
+      return parsedData;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  
+  getData();
