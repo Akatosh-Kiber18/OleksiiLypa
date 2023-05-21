@@ -1,9 +1,12 @@
 const connection = require('../connection');
-const {getTaskName} = require('./helpers.js');
+const {getTaskName, hasNonEnglishLetters} = require('./helpers.js');
 
 async function addTask(chatInfo) {
   const { senderName, words } = chatInfo;
   let taskName = await getTaskName(words);
+  if(hasNonEnglishLetters(taskName)){
+      return `Please ${senderName} use English`
+  }
 
   if(taskName == undefined) {
     return `I don't think that is the correct name for the task`;

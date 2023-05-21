@@ -37,14 +37,18 @@ const helpList = [
     }
 ];
 
-bot.on('message', async (msg) => {    
-    chatData = {
-        chatId: msg.chat.id,
-        senderName: msg.from.first_name + " " + msg.from.last_name,
-        words: msg.text.split(' ')      
-    }
+//Need add check for UA words, also now we can remove tasks which not exist in the table.
 
-    commandList(chatData)
+bot.on('message', async (msg) => {
+    if(msg) {
+        chatData = {
+            chatId: msg.chat.id,
+            senderName: msg.from.first_name + " " + msg.from.last_name,
+            words: msg.text.includes('/') ? msg.text.split(' ') : ''      
+        }
+    
+        commandList(chatData)
+    }
 });
 
 
@@ -77,7 +81,7 @@ async function commandList (chatData) {
         break;
 
         default : {
-            await bot.sendMessage(chatId, `Hi ${senderName}, maybe you should use /help?`);
+            // await bot.sendMessage(chatId, `Hi ${senderName}, maybe you should use /help?`);
         break;    
         }
    }
