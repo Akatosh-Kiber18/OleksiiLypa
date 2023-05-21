@@ -1,7 +1,7 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
-const {addTask, getListOfTask, addResult} = require('./tasks/tasks.js');
-const {getTaskName} = require('./tasks/helpers.js');
+const {addTask, getListOfTasks, removeTask} = require('./tasks/tasks.js');
+const {addResult} = require('./tasks/results.js');
 
 const bot = new TelegramBot(process.env.TOKEN, { polling: true });
 
@@ -13,7 +13,7 @@ bot.setMyCommands([
     {command: '/addresult', description: 'Add result by task name'},
     {command: '/leaderboard', description: 'Showing leader board by task name'}
 ])
-let listOfTasks = {};
+
 const helpList = [
     {
         name: '/addtask',
@@ -57,24 +57,23 @@ async function commandList (chatData) {
         break;
         
         case '/addtask':
-            bot.sendMessage(chatId, await addTask(chatData));
+            await bot.sendMessage(chatId, await addTask(chatData), { parse_mode: 'HTML' });
         break;
 
         case '/removetask':
-           await removeTask(chatData);     
+            await bot.sendMessage(chatId, await removeTask(chatData), { parse_mode: 'HTML' });   
         break;
 
         case '/addresult':
-            bot.sendMessage(chatId, await addResult(chatData));     
+            await bot.sendMessage(chatId, await addResult(chatData), { parse_mode: 'HTML' });     
         break;
 
         case '/leaderboard':
-            bot.sendMessage(chatId, await leaderboard(chatData));     
+            await bot.sendMessage(chatId, await leaderboard(chatData));     
         break;
 
         case '/tasklist':
-           const list = await getListOfTask();
-        //    await bot.sendMessage(chatId, list);
+            await bot.sendMessage(chatId, await getListOfTasks(chatData), { parse_mode: 'HTML' });
         break;
 
         default : {

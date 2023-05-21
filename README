@@ -1,3 +1,6 @@
+This bot is using MySQL database. So you need to create database and three tables in there.
+
+
 CREATE TABLE TASKS (
   id INT PRIMARY KEY AUTO_INCREMENT,
   Name VARCHAR(255)

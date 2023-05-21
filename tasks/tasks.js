@@ -18,76 +18,107 @@ async function addTask(chatInfo) {
   catch (error) {
     console.error('Error occurred while inserting the task:', error);
   }
-  return `Ok ${senderName} I add ${taskName} to list.`
+  return `Ok ${senderName} I add <b>${taskName}</b> to list.`
 }
 
-async function addResult(chatInfo) {
-  const { senderName, words } = chatInfo;
-  const taskName = await getTaskName(words);
-  const score = words[words.length-1]; 
-
-  const taskId = await getTaskIdByName(taskName);
-  let user = await getUserByName(senderName);
-
-  if(taskId !== undefined) {
-      if(user === undefined) {
-          await addNewUser(senderName);
-          
-          user = await getUserByName(senderName);
-
-          await addNewResult(taskId.id, user.ID, score);
-          return `${senderName} added score for ${taskName} task!`
-      } else {
-          await updateResult(taskId.id, user.ID, score);
-          return `${senderName} changed score for ${taskName} task!`
-      }
-  } else {
-      return `I cant add result for ${taskName} as it is not in the list.` 
-  }
-}
-
-async function removeTask(chatData) {
-  // const { chatId, senderName, words } = chatData;
-  // taskName = await getTaskName(words);
-}
-
-async function getListOfTask() {
-  try {
+async function getListOfTaskFromDB() {
+  return new Promise((resolve, reject) => {  
     const query = `
       SELECT TASKS.Name AS TASK_NAME, USERS.Name AS USER_NAME, RESULTS.Score AS RESULT_SCORE
       FROM RESULTS
       JOIN TASKS ON RESULTS.TaskID = TASKS.id
       JOIN USERS ON RESULTS.UserID = USERS.id;
     `;
-    const [rows] = await connection.query(query);
+    connection.query(query, (error, results) => {
+      if(error) {
+        reject(error);
+      } else {
+        resolve(results);
+      }
+    });
+  })
+}
 
-    if (!rows || !Array.isArray(rows)) {
-      console.log('No data found.');
-      return;
+async function parseListOfTask(res) {
+  const reduceTasksData = res.reduce((acc, { TASK_NAME, USER_NAME, RESULT_SCORE }) => {
+    if (!acc[TASK_NAME]) {
+      acc[TASK_NAME] = {};
     }
+    acc[TASK_NAME][USER_NAME] = RESULT_SCORE;
+    return acc;
+  }, []);
+  
+  const finalResult = Object.entries(reduceTasksData).map(([key, value]) => ({
+    [key]: value
+  }));
+  
+  return await prepareListForMessage(finalResult);
+}
 
-    const data = rows.map(row => ({
-      NAME: row.TASK_NAME,
-      USER: row.USER_NAME,
-      RESULT: row.RESULT_SCORE
-    }));
+async function prepareListForMessage(list) {
+  let message = '';
+  
+  list.forEach(task => {
+    const key = Object.keys(task)[0];
+    const value = task[key];
+    
+    message += `<b>${key}</b>:\n`;
+    
+    Object.entries(value).forEach(([user, score]) => {
+      message += `${user}: ${score}\n`;
+    });
 
-    console.log(data);
-    return data;
+    message += `\n`;
+  });
+
+  return message;
+}
+
+async function getListOfTasks() {
+  try {
+    const result = await getListOfTaskFromDB();
+    const parsedData = await parseListOfTask(result);
+    return parsedData;
   } catch (error) {
     console.error(error);
   }
 }
 
-//Actually it is will not remove as RESULTS table hs FK UserID to
-function removeTaskByName(name) {
-// -- Delete the results first
-// DELETE FROM RESULTS WHERE TaskID IN (SELECT id FROM TASKS WHERE Name = '<task_name>');
+async function removeTask(chatData) {
+  const { words } = chatData;
+  taskName = await getTaskName(words);
+  try {
+    await removeTaskResults(taskName);
+    await removeTaskByName(taskName);
+    
+    return `<b>${taskName}</b> and scores for it removed`
+  } catch (error) {
+    return error
+  }
 }
 
-function removeTaskResults(taskId) {
-// -- Delete the task
-// DELETE FROM TASKS WHERE Name = '<task_name>';
+function removeTaskResults(name) {
+  return new Promise((resolve, reject) => {
+    connection.query(`DELETE FROM RESULTS WHERE TaskID IN (SELECT id FROM TASKS WHERE Name = '${name}');`, (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results[0]);
+      }
+    });
+  });
+}
+
+function removeTaskByName(name) {
+  return new Promise((resolve, reject) => {
+    connection.query(`DELETE FROM TASKS WHERE Name = '${name}';`, (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results[0]);
+      }
+    });
+  });
 }
 
 function getTaskIdByName(name) {
@@ -102,57 +133,9 @@ function getTaskIdByName(name) {
   });
 }
 
-function getUserByName(name) {
-  return new Promise((resolve, reject) => {
-    connection.query(`SELECT ID FROM USERS WHERE Name='${name}';`, (error, results) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(results[0]);
-      }
-    });
-  });
-}
-
-function addNewUser(name) {
-  return new Promise((resolve, reject) => {
-    connection.query(`INSERT INTO USERS (NAME) VALUES ('${name}');`, (error, results) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(results[0]);
-      }
-    });
-  });
-}
-
-function addNewResult(taskId, userId, score) {
-  return new Promise((resolve, reject) => {
-    connection.query(`INSERT INTO RESULTS (TaskID, UserID, Score) VALUES (${taskId}, ${userId}, ${score})`, (error, results) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(results[0]);
-      }
-    });
-  });
-}
-
-function updateResult(taskId, userId, score) {
-return new Promise((resolve, reject) => {
-  connection.query(`UPDATE RESULTS SET Score=${score} WHERE TaskID='${taskId}' AND UserID='${userId}'`, (error, results) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve(results[0]);
-    }
-  });
-});
-}
-
 module.exports = {
   addTask,
-  addResult,
   removeTask,
-  getListOfTask
+  getListOfTasks,
+  getTaskIdByName
 }
