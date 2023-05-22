@@ -37,46 +37,41 @@ const helpList = [
     }
 ];
 
-//Need add check for UA words, also now we can remove tasks which not exist in the table.
-
 bot.on('message', async (msg) => {
-    if(msg) {
-        chatData = {
-            chatId: msg.chat.id,
-            senderName: msg.from.first_name + " " + msg.from.last_name,
-            words: msg.text.includes('/') ? msg.text.split(' ') : ''      
-        }
-    
-        commandList(chatData)
-    }
+        commandList(msg)
 });
 
-
-async function commandList (chatData) {
+async function commandList (msg) {
+    const chatData = { chatId: msg.chat.id,
+                       senderName: msg.from.first_name + " " + msg.from.last_name,
+                       words: msg.text.split(' ') };
+    
     const { chatId, senderName, words } = chatData;
 
+    const chatTeg = words[0].includes('@challenge_and_statistics_bot') ? '@challenge_and_statistics_bot' : '';
+
     switch (words[0]) {
-        case '/help':
+        case '/help' + chatTeg:
            await help(chatData);
         break;
         
-        case '/addtask':
+        case '/addtask' + chatTeg:
             await bot.sendMessage(chatId, await addTask(chatData), { parse_mode: 'HTML' });
         break;
 
-        case '/removetask':
+        case '/removetask' + chatTeg:
             await bot.sendMessage(chatId, await removeTask(chatData), { parse_mode: 'HTML' });   
         break;
 
-        case '/addresult':
+        case '/addresult' + chatTeg:
             await bot.sendMessage(chatId, await addResult(chatData), { parse_mode: 'HTML' });     
         break;
 
-        case '/leaderboard':
+        case '/leaderboard' + chatTeg:
             await bot.sendMessage(chatId, await leaderboard(chatData));     
         break;
 
-        case '/tasklist':
+        case '/tasklist' + chatTeg:
             await bot.sendMessage(chatId, await getListOfTasks(chatData), { parse_mode: 'HTML' });
         break;
 
