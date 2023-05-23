@@ -18,7 +18,7 @@ async function getTaskName (words) {
 function hasNonEnglishLetters(inputString) {
     var pattern = /[^\x00-\x7F]/;
     return pattern.test(inputString);
-  }
+}
 
 module.exports = {
     getTaskName,

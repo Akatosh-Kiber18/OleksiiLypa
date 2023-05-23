@@ -40,6 +40,18 @@ function addNewResult(taskId, userId, score) {
     });
   }
   
+  function checkIfResultExist() {
+    return new Promise((resolve, reject) => {
+      connection.query(`SELECT * FROM RESULTS;`, (error, results) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(results[0]);
+        }
+      });
+    });
+  }
+
   function updateResult(taskId, userId, score) {
   return new Promise((resolve, reject) => {
     connection.query(`UPDATE RESULTS SET Score=${score} WHERE TaskID='${taskId}' AND UserID='${userId}'`, (error, results) => {
@@ -53,5 +65,6 @@ function addNewResult(taskId, userId, score) {
   }
 
 module.exports = {
-    addResult
+    addResult,
+    checkIfResultExist
 }

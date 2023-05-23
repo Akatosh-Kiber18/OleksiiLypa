@@ -1,5 +1,6 @@
 const connection = require('../connection');
 const {getTaskName, hasNonEnglishLetters} = require('./helpers.js');
+const {checkIfResultExist} = require('./results');
 
 async function addTask(chatInfo) {
   const { senderName, words } = chatInfo;
@@ -78,12 +79,18 @@ async function prepareListForMessage(list) {
 }
 
 async function getListOfTasks() {
-  try {
-    const result = await getListOfTaskFromDB();
-    const parsedData = await parseListOfTask(result);
-    return parsedData;
-  } catch (error) {
-    console.error(error);
+  const tasksExist = await checkIfTaskExist();
+  const resultExist = await checkIfResultExist();
+  if(tasksExist != undefined && resultExist != undefined) {
+    try {
+      const result = await getListOfTaskFromDB();
+      const parsedData = await parseListOfTask(result);
+      return parsedData;
+    } catch (error) {
+      console.error(error);
+    }
+  } else {
+    return "List is empty"
   }
 }
 
@@ -136,9 +143,22 @@ function getTaskIdByName(name) {
   });
 }
 
+function checkIfTaskExist() {
+  return new Promise((resolve, reject) => {
+    connection.query(`SELECT * FROM TASKS;`, (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results[0]);
+      }
+    });
+  });
+}
+
 module.exports = {
   addTask,
   removeTask,
   getListOfTasks,
-  getTaskIdByName
+  getTaskIdByName,
+  checkIfTaskExist
 }

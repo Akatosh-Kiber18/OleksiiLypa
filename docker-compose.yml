@@ -4,9 +4,9 @@ services:
     image: mysql:8.0.33
     volumes:
       - lypa-mysql-data:/var/lib/mysql
+      - ./initTables.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
       MYSQL_DATABASE: lypadb
-      MYSQL_USER: root
       MYSQL_PASSWORD: admin
       MYSQL_ROOT_PASSWORD: admin
     ports:
