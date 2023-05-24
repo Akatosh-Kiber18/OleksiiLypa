@@ -38,13 +38,13 @@ const helpList = [
 ];
 
 bot.on('message', async (msg) => {
-    if(msg.text.length > 3) {
+    if(msg.text) {
         await commandList(msg);
-    }   
+    }
 });
 
 async function commandList (msg) {
-    console.log(msg);
+    // console.log(msg);
     const chatData = { chatId: msg.chat.id,
                        senderName: msg.from.first_name + " " + msg.from.last_name,
                        words: msg.text.split(' ')};

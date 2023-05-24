@@ -1,13 +1,15 @@
 const connection = require('../connection');
 const {addNewUser, getUserByName} = require('./users.js');
-const {getTaskIdByName} = require('./tasks');
 const {getTaskName} = require('./helpers');
 
 async function addResult(chatInfo) {
     const { senderName, words } = chatInfo;
     const taskName = await getTaskName(words);
     const score = words[words.length-1]; 
-  
+
+    if(/[a-zA-Z]/.test(score)) {
+      return 'I see that in your score something wrong.'
+    }
     const taskId = await getTaskIdByName(taskName);
     let user = await getUserByName(senderName);
   
@@ -62,6 +64,18 @@ function addNewResult(taskId, userId, score) {
       }
     });
   });
+  }
+
+  function getTaskIdByName(name) {
+    return new Promise((resolve, reject) => {
+      connection.query(`SELECT * FROM TASKS WHERE Name='${name}';`, (error, results) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(results[0]);
+        }
+      });
+    });
   }
 
 module.exports = {

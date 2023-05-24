@@ -96,14 +96,25 @@ async function getListOfTasks() {
 
 async function removeTask(chatData) {
   const { words } = chatData;
-  taskName = await getTaskName(words);
-  try {
-    await removeTaskResults(taskName);
-    await removeTaskByName(taskName);
-    
-    return `<b>${taskName}</b> and scores for it removed`
-  } catch (error) {
-    return error
+  const taskName = await getTaskName(words);
+  const tasks = await checkIfTaskExist(taskName);
+  let taskExist = false;
+  tasks.forEach(task => {
+    if(task.Name === taskName) {
+      taskExist = true;
+    }
+  })
+  if(taskExist) {
+    try {
+      await removeTaskResults(taskName);
+      await removeTaskByName(taskName);
+      
+      return `<b>${taskName}</b> and scores for it removed`
+    } catch (error) {
+      return error
+    }
+  } else {
+    return `I dont see this task in the list`
   }
 }
 
@@ -131,25 +142,13 @@ function removeTaskByName(name) {
   });
 }
 
-function getTaskIdByName(name) {
-  return new Promise((resolve, reject) => {
-    connection.query(`SELECT * FROM TASKS WHERE Name='${name}';`, (error, results) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(results[0]);
-      }
-    });
-  });
-}
-
 function checkIfTaskExist() {
   return new Promise((resolve, reject) => {
     connection.query(`SELECT * FROM TASKS;`, (error, results) => {
       if (error) {
         reject(error);
       } else {
-        resolve(results[0]);
+        resolve(results);
       }
     });
   });
@@ -159,6 +158,5 @@ module.exports = {
   addTask,
   removeTask,
   getListOfTasks,
-  getTaskIdByName,
   checkIfTaskExist
 }
