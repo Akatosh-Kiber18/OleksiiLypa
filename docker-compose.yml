@@ -11,5 +11,19 @@ services:
       MYSQL_ROOT_PASSWORD: admin
     ports:
       - "3306:3306"
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - TOKEN=
+      - DB_HOST=db
+      - DB_USERNAME=root 
+      - DB_PASSWORD=admin 
+      - DB_DATABASE=lypadb
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
 volumes:
   lypa-mysql-data:
