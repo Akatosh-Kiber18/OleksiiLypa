@@ -2,8 +2,8 @@ const connection = require('../connection');
 const {getTaskName, hasNonEnglishLetters} = require('./helpers.js');
 const {checkIfResultExist} = require('./results');
 
-async function addTask(chatInfo) {
-  const { senderName, words } = chatInfo;
+async function addTask(chatData) {
+  const { chatId, senderName, words } = chatData;
   let taskName = await getTaskName(words);
   if(hasNonEnglishLetters(taskName)){
       return `Please ${senderName} use English`
@@ -14,7 +14,7 @@ async function addTask(chatInfo) {
   }
 
   try {
-    const query = `INSERT INTO TASKS (NAME) VALUES ('${taskName}')`;
+    const query = `INSERT INTO TASKS (NAME, ChatID) VALUES ('${taskName}', '${chatId}')`;
     await connection.query(query);
 
     console.log('Task inserted successfully!');
@@ -25,13 +25,14 @@ async function addTask(chatInfo) {
   return `Ok ${senderName} I add <b>${taskName}</b> to list.`
 }
 
-async function getListOfTaskFromDB() {
+async function getListOfTaskFromDB(chatId) {
   return new Promise((resolve, reject) => {  
     const query = `
       SELECT TASKS.Name AS TASK_NAME, USERS.Name AS USER_NAME, RESULTS.Score AS RESULT_SCORE
       FROM RESULTS
       JOIN TASKS ON RESULTS.TaskID = TASKS.id
-      JOIN USERS ON RESULTS.UserID = USERS.id;
+      JOIN USERS ON RESULTS.UserID = USERS.id
+      WHERE RESULTS.ChatID = '${chatId}' AND TASKS.ChatID = '${chatId}' AND USERS.ChatID = '${chatId}';
     `;
     connection.query(query, (error, results) => {
       if(error) {
@@ -78,12 +79,13 @@ async function prepareListForMessage(list) {
   return message;
 }
 
-async function getListOfTasks() {
-  const tasksExist = await checkIfTaskExist();
-  const resultExist = await checkIfResultExist();
+async function getListOfTasks(chatData) {
+  const { chatId } = chatData;
+  const tasksExist = await checkIfTasksExist(chatId);
+  const resultExist = await checkIfResultExist(chatId);
   if(tasksExist != undefined && resultExist != undefined) {
     try {
-      const result = await getListOfTaskFromDB();
+      const result = await getListOfTaskFromDB(chatId);
       const parsedData = await parseListOfTask(result);
       return parsedData;
     } catch (error) {
@@ -95,9 +97,9 @@ async function getListOfTasks() {
 }
 
 async function removeTask(chatData) {
-  const { words } = chatData;
+  const { chatId, words } = chatData;
   const taskName = await getTaskName(words);
-  const tasks = await checkIfTaskExist(taskName);
+  const tasks = await checkIfTasksExist(chatId);
   let taskExist = false;
   tasks.forEach(task => {
     if(task.Name === taskName) {
@@ -106,8 +108,8 @@ async function removeTask(chatData) {
   })
   if(taskExist) {
     try {
-      await removeTaskResults(taskName);
-      await removeTaskByName(taskName);
+      await removeTaskResults(taskName, chatId);
+      await removeTaskByName(taskName, chatId);
       
       return `<b>${taskName}</b> and scores for it removed`
     } catch (error) {
@@ -118,9 +120,9 @@ async function removeTask(chatData) {
   }
 }
 
-function removeTaskResults(name) {
+function removeTaskResults(name, chatId) {
   return new Promise((resolve, reject) => {
-    connection.query(`DELETE FROM RESULTS WHERE TaskID IN (SELECT id FROM TASKS WHERE Name = '${name}');`, (error, results) => {
+    connection.query(`DELETE FROM RESULTS WHERE TaskID IN (SELECT id FROM TASKS WHERE Name = '${name}') AND ChatID='${chatId}';`, (error, results) => {
       if (error) {
         reject(error);
       } else {
@@ -130,9 +132,9 @@ function removeTaskResults(name) {
   });
 }
 
-function removeTaskByName(name) {
+function removeTaskByName(name, chatId) {
   return new Promise((resolve, reject) => {
-    connection.query(`DELETE FROM TASKS WHERE Name = '${name}';`, (error, results) => {
+    connection.query(`DELETE FROM TASKS WHERE Name = '${name}' AND ChatID='${chatId}';`, (error, results) => {
       if (error) {
         reject(error);
       } else {
@@ -142,9 +144,9 @@ function removeTaskByName(name) {
   });
 }
 
-function checkIfTaskExist() {
+function checkIfTasksExist(chatId) {
   return new Promise((resolve, reject) => {
-    connection.query(`SELECT * FROM TASKS;`, (error, results) => {
+    connection.query(`SELECT * FROM TASKS WHERE ChatID='${chatId}';`, (error, results) => {
       if (error) {
         reject(error);
       } else {
@@ -158,5 +160,5 @@ module.exports = {
   addTask,
   removeTask,
   getListOfTasks,
-  checkIfTaskExist
+  checkIfTasksExist
 }

@@ -3,26 +3,26 @@ const {addNewUser, getUserByName} = require('./users.js');
 const {getTaskName} = require('./helpers');
 
 async function addResult(chatInfo) {
-    const { senderName, words } = chatInfo;
+    const { chatId, senderName, words } = chatInfo;
     const taskName = await getTaskName(words);
     const score = words[words.length-1]; 
 
     if(/[a-zA-Z]/.test(score)) {
       return 'I see that in your score something wrong.'
     }
-    const taskId = await getTaskIdByName(taskName);
-    let user = await getUserByName(senderName);
+    const taskId = await getTaskIdByName(taskName, chatId);
+    let user = await getUserByName(senderName, chatId);
   
     if(taskId !== undefined) {
         if(user === undefined) {
-            await addNewUser(senderName);
+            await addNewUser(senderName, chatId);
             
-            user = await getUserByName(senderName);
+            user = await getUserByName(senderName, chatId);
   
-            await addNewResult(taskId.id, user.ID, score);
+            await addNewResult(taskId.id, user.ID, score, chatId);
             return `${senderName} added score for <b>${taskName}</b> task!`
         } else {
-            await addNewResult(taskId.id, user.ID, score);
+            await addNewResult(taskId.id, user.ID, score, chatId);
             return `${senderName} added score for <b>${taskName}</b> task!`
         }
     } else {
@@ -30,9 +30,9 @@ async function addResult(chatInfo) {
     }
   }
 
-function addNewResult(taskId, userId, score) {
+function addNewResult(taskId, userId, score, chatId) {
     return new Promise((resolve, reject) => {
-      connection.query(`INSERT INTO RESULTS (TaskID, UserID, Score) VALUES (${taskId}, ${userId}, ${score})`, (error, results) => {
+      connection.query(`INSERT INTO RESULTS (TaskID, UserID, Score, ChatID) VALUES (${taskId}, ${userId}, ${score}, ${chatId})`, (error, results) => {
         if (error) {
           reject(error);
         } else {
@@ -42,9 +42,9 @@ function addNewResult(taskId, userId, score) {
     });
   }
   
-  function checkIfResultExist() {
+  function checkIfResultExist(chatId) {
     return new Promise((resolve, reject) => {
-      connection.query(`SELECT * FROM RESULTS;`, (error, results) => {
+      connection.query(`SELECT * FROM RESULTS WHERE ChatID='${chatId}' ;`, (error, results) => {
         if (error) {
           reject(error);
         } else {
@@ -54,9 +54,9 @@ function addNewResult(taskId, userId, score) {
     });
   }
 
-  function updateResult(taskId, userId, score) {
+  function updateResult(taskId, userId, score, chatId) {
   return new Promise((resolve, reject) => {
-    connection.query(`UPDATE RESULTS SET Score=${score} WHERE TaskID='${taskId}' AND UserID='${userId}'`, (error, results) => {
+    connection.query(`UPDATE RESULTS SET Score=${score} WHERE TaskID='${taskId}' AND UserID='${userId}' AND ChatID='${chatId}'`, (error, results) => {
       if (error) {
         reject(error);
       } else {
@@ -66,9 +66,9 @@ function addNewResult(taskId, userId, score) {
   });
   }
 
-  function getTaskIdByName(name) {
+  function getTaskIdByName(name, chatId) {
     return new Promise((resolve, reject) => {
-      connection.query(`SELECT * FROM TASKS WHERE Name='${name}';`, (error, results) => {
+      connection.query(`SELECT * FROM TASKS WHERE Name='${name}' AND ChatID='${chatId}';`, (error, results) => {
         if (error) {
           reject(error);
         } else {
